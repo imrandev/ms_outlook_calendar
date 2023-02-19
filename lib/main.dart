@@ -123,15 +123,19 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void authenticate() async {
     var client = OAuth2Client(
-        authorizeUrl:
-        'https://login.microsoftonline.com/6622f8fa-db68-4b48-8608-e3f99e2d8dd1/oauth2/v2.0/authorize',
+        authorizeUrl: 'https://login.microsoftonline.com/6622f8fa-db68-4b48-8608-e3f99e2d8dd1/oauth2/v2.0/authorize',
         tokenUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
-        redirectUri: 'https://com.sqgc.ms_outlook_calendar',
-        customUriScheme: 'com.sqgc.ms_outlook_calendar');
-
+        redirectUri: 'msauth://com.sqgc.ms_outlook_calender/7pcQFSNR9h5ruIgVBMyx9p/sniI=',
+        customUriScheme: 'msauth',
+    );
+    print('authorizeUrl: ${client.authorizeUrl}');
     var token = await client.getTokenWithAuthCodeFlow(
         clientId: '89e15e51-e5aa-4986-8677-9e7feaf557dd',
-        scopes: ['openid profile offline_access user.read calendars.read']);
+        clientSecret: '7Zw8Q~vvfOSkXGEcR7~7VN0SigGFUwdoqBApKc~.',
+        //scopes: ['openid profile offline_access user.read calendars.read'],
+        scopes: ['openid calendars.read'],
+    );
     print('accessToken: ${token.accessToken}');
+    print('errorDescription: ${token.errorDescription!}');
   }
 }

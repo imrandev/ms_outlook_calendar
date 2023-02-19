@@ -1,0 +1,16 @@
+{
+  "client_id" : "89e15e51-e5aa-4986-8677-9e7feaf557dd",
+  "authorization_user_agent" : "DEFAULT",
+  "redirect_uri" : "msauth://com.sqgc.ms_outlook_calender/7pcQFSNR9h5ruIgVBMyx9p%2FsniI%3D",
+  "broker_redirect_uri_registered" : true,
+  "account_mode" : "SINGLE",
+  "authorities" : [
+    {
+      "type": "AAD",
+      "audience": {
+        "type": "AzureADMyOrg",
+        "tenant_id": "6622f8fa-db68-4b48-8608-e3f99e2d8dd1"
+      }
+    }
+  ]
+}
