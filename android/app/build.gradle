@@ -69,9 +69,10 @@ flutter {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation "com.microsoft.identity.client:msal:3.0.+"
+    //implementation "com.microsoft.identity.client:msal:3.0.+"
 }
 
+/*
 allprojects {
     repositories {
         mavenCentral()
@@ -79,4 +80,4 @@ allprojects {
             url 'https://pkgs.dev.azure.com/MicrosoftDeviceSDK/DuoSDK-Public/_packaging/Duo-SDK-Feed/maven/v1'
         }
     }
-}
+}*/

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:ms_outlook_calender/core/di/injection.dart';
+import 'package:ms_outlook_calender/core/session/session_manager.dart';
 import 'package:oauth2_client/oauth2_client.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await configureDependencies();
   runApp(const MyApp());
 }
 
@@ -49,24 +53,18 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+
+  final SessionManager _sessionManager = getIt<SessionManager>();
+
+  String? _accessToken = '';
 
   void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+    authenticate();
   }
-
 
   @override
   void initState() {
     super.initState();
-    authenticate();
   }
 
   @override
@@ -87,28 +85,14 @@ class _MyHomePageState extends State<MyHomePage> {
         // Center is a layout widget. It takes a single child and positions it
         // in the middle of the parent.
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             const Text(
-              'You have pushed the button this many times:',
+              'Microsoft Graph API Access Token',
             ),
             Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
+              _accessToken != null ? _accessToken! : 'Token not found',
+              style: Theme.of(context).textTheme.subtitle1,
             ),
           ],
         ),
@@ -124,18 +108,22 @@ class _MyHomePageState extends State<MyHomePage> {
   void authenticate() async {
     var client = OAuth2Client(
         authorizeUrl: 'https://login.microsoftonline.com/6622f8fa-db68-4b48-8608-e3f99e2d8dd1/oauth2/v2.0/authorize',
-        tokenUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+        tokenUrl: 'https://login.microsoftonline.com/6622f8fa-db68-4b48-8608-e3f99e2d8dd1/oauth2/v2.0/token',
         redirectUri: 'msauth://com.sqgc.ms_outlook_calender/7pcQFSNR9h5ruIgVBMyx9p/sniI=',
         customUriScheme: 'msauth',
     );
     print('authorizeUrl: ${client.authorizeUrl}');
     var token = await client.getTokenWithAuthCodeFlow(
         clientId: '89e15e51-e5aa-4986-8677-9e7feaf557dd',
-        clientSecret: '7Zw8Q~vvfOSkXGEcR7~7VN0SigGFUwdoqBApKc~.',
-        //scopes: ['openid profile offline_access user.read calendars.read'],
-        scopes: ['openid calendars.read'],
+        //clientSecret: '7Zw8Q~vvfOSkXGEcR7~7VN0SigGFUwdoqBApKc~.',
+      // AccessReview.Read.All
+        scopes: ['openid profile offline_access user.read user.read.all calendars.read calendars.readwrite Calendars.Read.Shared'],
     );
     print('accessToken: ${token.accessToken}');
-    print('errorDescription: ${token.errorDescription!}');
+    setState(() {
+      _accessToken = token.accessToken;
+    });
+    _sessionManager.accessToken = token.accessToken;
+    //print('errorDescription: ${token.errorDescription!}');
   }
 }
