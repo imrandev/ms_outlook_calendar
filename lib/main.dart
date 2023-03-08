@@ -1,35 +1,34 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:ms_outlook_calender/core/bloc/bloc.dart';
 import 'package:ms_outlook_calender/core/di/injection.dart';
 import 'package:ms_outlook_calender/core/session/session_manager.dart';
+import 'package:ms_outlook_calender/presentation/bloc/home_bloc.dart';
+import 'package:ms_outlook_calender/presentation/ui/home_page.dart';
 import 'package:oauth2_client/oauth2_client.dart';
+import 'package:http/http.dart' as http;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await configureDependencies();
-  runApp(const MyApp());
+  runApp(const MeetingRoomApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+class MeetingRoomApp extends StatelessWidget {
+  const MeetingRoomApp({Key? key}) : super(key: key);
 
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Meeting Room',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: BlocProvider(bloc: HomeBloc(), child: const HomePage()),
+      //home: const MyHomePage(title: ""),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -81,20 +80,22 @@ class _MyHomePageState extends State<MyHomePage> {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'Microsoft Graph API Access Token',
-            ),
-            Text(
-              _accessToken != null ? _accessToken! : 'Token not found',
-              style: Theme.of(context).textTheme.subtitle1,
-            ),
-          ],
+      body: SingleChildScrollView(
+        child: Center(
+          // Center is a layout widget. It takes a single child and positions it
+          // in the middle of the parent.
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              const Text(
+                'Microsoft Graph API Response',
+              ),
+              Text(
+                _accessToken != null ? _accessToken! : 'Token not found',
+                style: Theme.of(context).textTheme.subtitle1,
+              ),
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
@@ -112,18 +113,27 @@ class _MyHomePageState extends State<MyHomePage> {
         redirectUri: 'msauth://com.sqgc.ms_outlook_calender/7pcQFSNR9h5ruIgVBMyx9p/sniI=',
         customUriScheme: 'msauth',
     );
-    print('authorizeUrl: ${client.authorizeUrl}');
     var token = await client.getTokenWithAuthCodeFlow(
         clientId: '89e15e51-e5aa-4986-8677-9e7feaf557dd',
-        //clientSecret: '7Zw8Q~vvfOSkXGEcR7~7VN0SigGFUwdoqBApKc~.',
-      // AccessReview.Read.All
-        scopes: ['openid profile offline_access user.read user.read.all calendars.read calendars.readwrite Calendars.Read.Shared'],
+        scopes: ['openid profile offline_access calendars.read'],
     );
     print('accessToken: ${token.accessToken}');
-    setState(() {
+    /*setState(() {
       _accessToken = token.accessToken;
-    });
+    });*/
     _sessionManager.accessToken = token.accessToken;
-    //print('errorDescription: ${token.errorDescription!}');
+    
+    var response = await http.get(
+      Uri.parse("https://graph.microsoft.com/v1.0/me/calendar/calendarView?startDateTime=2023-01-01T00:00:00&endDateTime=2023-12-31T00:00:00"),
+      headers: {
+      "Authorization": "Bearer ${token.accessToken!}",
+      "Prefer": 'outlook.timezone="Asia/Dhaka"',
+      },
+    );
+
+    print('Response: ${json.decode(response.body)}');
+    setState(() {
+      _accessToken = "${json.decode(response.body)}";
+    });
   }
 }
