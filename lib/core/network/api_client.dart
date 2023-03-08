@@ -22,16 +22,25 @@ class ApiClient {
     return response;
   }
 
-  Future<dynamic> postWithData(String path, {required data, options}) async {
+  Future<dynamic> postWithData(String path, {required data, options, baseUrl}) async {
+
+    if (baseUrl != null){
+      _dio.options.baseUrl = baseUrl;
+    }
+
     Response response = await _dio.post(path, data: data, options: options,);
     logger.e(response.statusMessage);
     if (response.statusCode == 500) return null;
     return response;
   }
 
-  Future<dynamic> postWithDataAndHeader(String path, {required data, required header}) async {
+  Future<dynamic> postWithDataAndHeader(String path, {required data, required header, baseUrl}) async {
 
     _dio.options.headers = header;
+
+    if (baseUrl != null){
+      _dio.options.baseUrl = baseUrl;
+    }
 
     Response response = await _dio.post(path, data: data,);
     logger.e(response.statusMessage);
@@ -55,10 +64,12 @@ class ApiClient {
     }
   }
 
-  Future<dynamic> getWithHeader(String path, {Map<String, dynamic>? params}) async {
+  Future<dynamic> getWithHeader(String path, {Map<String, dynamic>? params, baseUrl}) async {
     try {
-      BaseOptions options = _dio.options;
-      options.headers = {
+      if (baseUrl != null){
+        _dio.options.baseUrl = baseUrl;
+      }
+      _dio.options.headers = {
         "Authorization" : getIt<SessionManager>().accessToken!,
         "Prefer": 'outlook.timezone="Asia/Dhaka"',
       };

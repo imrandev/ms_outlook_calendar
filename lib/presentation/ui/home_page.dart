@@ -37,7 +37,7 @@ class HomePage extends StatelessWidget {
           ),
           stream: bloc.scheduleStream,
         ),
-        stream: Stream.periodic(const Duration(minutes: 15)).asyncMap((event) => bloc.fetch()),
+        stream: Stream.periodic(const Duration(minutes: 10)).asyncMap((event) => bloc.fetch()),
       ),
     );
   }
@@ -153,7 +153,7 @@ class HomePage extends StatelessWidget {
       return Expanded(
         flex: 1,
         child: Center(
-          child: Text(response.message!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w300,),),
+          child: Text(response.message!, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w300,), textAlign: TextAlign.center,),
         ),
       );
     }

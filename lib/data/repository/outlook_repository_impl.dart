@@ -32,6 +32,7 @@ class OutlookRepositoryImpl implements OutlookRepository {
       redirectUri: Constant.redirectUrl,
       customUriScheme: Constant.customScheme,
     );
+    
     var token = await client.getTokenWithAuthCodeFlow(
       clientId: Constant.clientId,
       scopes: ['openid profile offline_access calendars.read'],
@@ -53,6 +54,7 @@ class OutlookRepositoryImpl implements OutlookRepository {
     // if token expired
     DateTime? expirationDate = _sessionManager.tokenExpiration != null
         ? DateFormatUtil.toDateTime(_sessionManager.tokenExpiration!) : null;
+
     if (expirationDate != null && DateTime.now().isAfter(expirationDate)){
       await fetchNewToken();
     }
@@ -60,6 +62,7 @@ class OutlookRepositoryImpl implements OutlookRepository {
     try {
       dynamic data = await _apiClient.getWithHeader(
         EndPoints.calendarView,
+        baseUrl: Constant.baseUrl,
         params: {
           "startDateTime" : startDateTime,
           "endDateTime" : endDateTime,
@@ -107,6 +110,7 @@ class OutlookRepositoryImpl implements OutlookRepository {
 
       dynamic data = await _apiClient.postWithDataAndHeader(
         EndPoints.getSchedule,
+        baseUrl: Constant.baseUrl,
         data: {
           "schedules": ["qm1@sqgc.com"],
           "startTime": {
@@ -138,13 +142,21 @@ class OutlookRepositoryImpl implements OutlookRepository {
         );
       }
 
-      ScheduleResponse response = ScheduleResponse.fromJson(json.decode(data.dtoString()));
+      ScheduleResponse response = ScheduleResponse.fromJson(json.decode(data.toString()));
       if (response.value == null) {
         return ScheduleResponse(
           isSuccess: false,
           message: Message.noRecordFound,
         );
       }
+
+      if (response.value!.isNotEmpty && (response.value![0].scheduleItems == null || response.value![0].scheduleItems!.isEmpty)){
+        return ScheduleResponse(
+          isSuccess: false,
+          message: Message.noMeetingFound,
+        );
+      }
+
       return response;
     } on Exception catch (_, e){
       logger.e(e.toString());
@@ -158,13 +170,16 @@ class OutlookRepositoryImpl implements OutlookRepository {
   @override
   Future<TokenResponse> fetchNewToken() async {
     try {
-      dynamic data = _apiClient.postWithData(
+      dynamic data = await _apiClient.postWithData(
         EndPoints.token,
-        options: Options(contentType: "application/x-www-form-urlencoded",),
+        options: Options(
+          contentType: "application/x-www-form-urlencoded",
+        ),
+        baseUrl: "https://login.microsoftonline.com",
         data: {
           "client_id" : Constant.clientId,
           "refresh_token": _sessionManager.refreshToken!,
-          //"client_secret": Constant.clientSecret,
+          "grant_type": "refresh_token",
         },
       ).onError((error, stackTrace) {
         logger.e(error.toString());
@@ -180,10 +195,11 @@ class OutlookRepositoryImpl implements OutlookRepository {
           message: Message.connectionFailed,
         );
       }
+
       TokenResponse response = TokenResponse.fromJson(json.decode(data.toString()));
       _sessionManager.accessToken = response.accessToken!;
       _sessionManager.refreshToken = response.refreshToken!;
-      _sessionManager.tokenExpiration = response.expiresIn;
+      _sessionManager.tokenExpiration = DateTime.now().add(Duration(seconds: response.expiresIn!,)).millisecondsSinceEpoch;
       return response;
     } on Exception catch (_, e){
       logger.e(e.toString());
