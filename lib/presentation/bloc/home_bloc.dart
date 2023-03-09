@@ -44,11 +44,13 @@ class HomeBloc extends BlocBase {
     if (_sessionManager.refreshToken == null){
       await _authenticateUseCase.invoke();
     }
+
     // call get schedule api for meeting room
     DateTime dateTime = DateTime.now();
     String startDateTime = DateFormatUtil.getCurrentDateTime(dateTime);
     String endDateTime = DateFormatUtil.getAdding30MinToCurrentDateTime(dateTime);
-    ScheduleResponse response = await _scheduleUseCase.invoke(startDateTime, endDateTime);
-    _scheduleSink(response);
+    //ScheduleResponse response = await _scheduleUseCase.invoke(startDateTime, endDateTime);
+    CalendarViewResponse response = await _calendarViewUseCase.invoke(startDateTime, endDateTime);
+    _calendarSink(response);
   }
 }

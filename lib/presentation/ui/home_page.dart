@@ -5,7 +5,7 @@ import 'package:ms_outlook_calender/core/bloc/bloc.dart';
 import 'package:ms_outlook_calender/core/utils/constant.dart';
 import 'package:ms_outlook_calender/core/utils/date_format_util.dart';
 import 'package:ms_outlook_calender/core/utils/message.dart';
-import 'package:ms_outlook_calender/data/model/schedule_response.dart';
+import 'package:ms_outlook_calender/data/model/calendar_view_response.dart';
 import 'package:ms_outlook_calender/presentation/bloc/home_bloc.dart';
 
 class HomePage extends StatelessWidget {
@@ -19,7 +19,7 @@ class HomePage extends StatelessWidget {
 
     return Scaffold(
       body: StreamBuilder(
-        builder: (context, _) => StreamBuilder<ScheduleResponse>(
+        builder: (context, _) => StreamBuilder<CalendarViewResponse>(
           builder: (context, snapshot) => Container(
             color: _getMainBackground(snapshot.data),
             height: MediaQuery.of(context).size.height,
@@ -35,37 +35,37 @@ class HomePage extends StatelessWidget {
               ],
             ),
           ),
-          stream: bloc.scheduleStream,
+          stream: bloc.calendarStream,
         ),
         stream: Stream.periodic(const Duration(minutes: 10)).asyncMap((event) => bloc.fetch()),
       ),
     );
   }
 
-  Color _getMainBackground(ScheduleResponse? response){
-    if (response != null && response.value != null
-        && response.value!.isNotEmpty && response.value![0].availabilityView! == "2"){
+  Color _getMainBackground(CalendarViewResponse? response){
+    if (response != null && response.availabilityView != null
+        && response.availabilityView! == "2"){
       return const Color(0xffC24447);
     }
     return const Color(0xff7AB19F);
   }
 
-  Color _getWidgetBackground(ScheduleResponse? response){
-    if (response != null && response.value != null
-        && response.value!.isNotEmpty && response.value![0].availabilityView! == "2"){
+  Color _getWidgetBackground(CalendarViewResponse? response){
+    if (response != null && response.availabilityView != null
+        && response.availabilityView! == Constant.occupied){
       return const Color(0xffCB494B);
     }
     return const Color(0xff71A491);
   }
 
-  Widget _getTopAppbar(ScheduleResponse? response){
+  Widget _getTopAppbar(CalendarViewResponse? response){
     return AppBar(
       elevation: 0,
       backgroundColor: _getWidgetBackground(response),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("QM1", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 18,),),
+          Text(_getLocation(response), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 18,),),
           const SizedBox(height: 5,),
           Text(
             _getAvailabilityStatus(response),
@@ -76,24 +76,28 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  String _getLocation(ScheduleResponse? response){
+  String _getLocation(CalendarViewResponse? response){
     if (response != null && response.value != null
-        && response.value!.isNotEmpty && response.value![0].scheduleItems!.isNotEmpty){
-      return response.value![0].scheduleItems![0].location!;
+        && response.value!.isNotEmpty && response.value![0].location != null
+        && response.value![0].location!.displayName != null
+        && response.value![0].location!.displayName!.isNotEmpty){
+      return response.value![0].location!.displayName!.replaceAll("Meeting Room", "").toUpperCase();
     }
     return "";
   }
 
-  String _getAvailabilityStatus(ScheduleResponse? response){
-    if (response != null && response.value != null
-        && response.value!.isNotEmpty
-        && response.value![0].availabilityView! == Constant.occupied){
+  String _getAvailabilityStatus(CalendarViewResponse? response){
+    if (response == null){
+      return "";
+    }
+    if (response.availabilityView != null
+        && response.availabilityView! == Constant.occupied){
       return "Occupied";
     }
     return "Available";
   }
 
-  Widget _getBottomView(BuildContext context, ScheduleResponse? response){
+  Widget _getBottomView(BuildContext context, CalendarViewResponse? response){
     return Container(
       height: MediaQuery.of(context).size.height / 16,
       color: _getWidgetBackground(response),
@@ -112,7 +116,7 @@ class HomePage extends StatelessWidget {
                       DateFormatUtil.getCurrentTime(),
                       style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w300,),
                     ),
-                    stream: Stream.periodic(const Duration(seconds: 1,)),
+                    stream: Stream.periodic(const Duration(seconds: 1,),),
                   ),
                   Text(
                     DateFormatUtil.getCurrentDate(),
@@ -140,7 +144,7 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _getMeetingView(ScheduleResponse? response, HomeBloc bloc){
+  Widget _getMeetingView(CalendarViewResponse? response, HomeBloc bloc){
     if (response == null){
       return const Expanded(
         flex: 1,
@@ -157,7 +161,7 @@ class HomePage extends StatelessWidget {
         ),
       );
     }
-    if (response.value == null || response.value!.isEmpty || response.value![0].scheduleItems == null || response.value![0].scheduleItems!.isEmpty){
+    if (response.value == null || response.value!.isEmpty){
       return const Expanded(
         flex: 1,
         child: Center(
@@ -175,9 +179,9 @@ class HomePage extends StatelessWidget {
           children: [
             _getRemainingTimeView(response, bloc),
             const SizedBox(height: 8,),
-            Text(response.value![0].scheduleItems![0].subject!, style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.w300,),),
-            /*const SizedBox(height: 8,),
-                      const Text("Discussion on Meeting Room Booking System", style: TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.w400,),),*/
+            Text(response.value![0].organizer!.emailAddress!.name!, style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.w300,),),
+            const SizedBox(height: 8,),
+            Text(response.value![0].subject!, style: const TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.w400,),),
             const SizedBox(height: 8,),
             Text(_getMeetingTime(response), style: const TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.w300,),),
             const SizedBox(height: 16,),
@@ -188,7 +192,7 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _getRemainingTimeView(ScheduleResponse response, HomeBloc bloc){
+  Widget _getRemainingTimeView(CalendarViewResponse response, HomeBloc bloc){
     return DottedBorder(
       borderType: BorderType.Circle,
       dashPattern: const [10],
@@ -200,10 +204,24 @@ class HomePage extends StatelessWidget {
         alignment: Alignment.center,
         child: StreamBuilder(
           builder: (context, s) {
-            int durationInMinutes = DateFormatUtil.formattedDateTime(response.value![0].scheduleItems![0].end!.dateTime!).difference(DateTime.now()).inMinutes;
-            int durationInSeconds = DateFormatUtil.formattedDateTime(response.value![0].scheduleItems![0].end!.dateTime!).difference(DateTime.now()).inSeconds;
-            if (durationInMinutes == 0 && durationInSeconds == 1){
-              bloc.fetch();
+            bool hasMeetingStarted = DateTime.now().isAfter(DateFormatUtil
+                .formattedDateTime(response.value![0].start!.dateTime!));
+            int durationInMinutes = 0;
+            if (hasMeetingStarted) {
+              durationInMinutes = DateFormatUtil
+                  .formattedDateTime(response.value![0].end!.dateTime!)
+                  .difference(DateTime.now())
+                  .inMinutes;
+              int durationInSeconds = DateFormatUtil
+                  .formattedDateTime(response.value![0].end!.dateTime!)
+                  .difference(DateTime.now())
+                  .inSeconds;
+              if (durationInMinutes == 0 && durationInSeconds == 1) {
+                bloc.fetch();
+              }
+              if (durationInMinutes < 0){
+                durationInMinutes = 0;
+              }
             }
             return Text(
               "$durationInMinutes",
@@ -216,14 +234,14 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  String _getMeetingTime(ScheduleResponse response){
-    String startDateTime = DateFormatUtil.formattedDateTimeAsString(response.value![0].scheduleItems![0].start!.dateTime!);
-    String endDateTime = DateFormatUtil.formattedDateTimeAsString(response.value![0].scheduleItems![0].end!.dateTime!);
+  String _getMeetingTime(CalendarViewResponse response){
+    String startDateTime = DateFormatUtil.formattedDateTimeAsString(response.value![0].start!.dateTime!);
+    String endDateTime = DateFormatUtil.formattedDateTimeAsString(response.value![0].end!.dateTime!);
     return "$startDateTime - $endDateTime";
   }
 
-  Widget _getNextScheduleView(ScheduleResponse response){
-    if (response.value![0].scheduleItems!.length < 2){
+  Widget _getNextScheduleView(CalendarViewResponse response){
+    if (response.value!.length < 2){
       return const SizedBox();
     }
     return Row(
@@ -244,7 +262,7 @@ class HomePage extends StatelessWidget {
           child: SizedBox(
             height: 18,
             child: Marquee(
-              text: '${response.value![0].scheduleItems![1].subject!} | ${_getNextMeetingTime(response)}',
+              text: '${response.value![1].subject!} | ${_getNextMeetingTime(response)}',
               style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white,),
               scrollAxis: Axis.horizontal,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -263,9 +281,9 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  String _getNextMeetingTime(ScheduleResponse response){
-    String startDateTime = DateFormatUtil.formattedDateTimeAsString(response.value![0].scheduleItems![1].start!.dateTime!);
-    String endDateTime = DateFormatUtil.formattedDateTimeAsString(response.value![0].scheduleItems![1].end!.dateTime!);
+  String _getNextMeetingTime(CalendarViewResponse response){
+    String startDateTime = DateFormatUtil.formattedDateTimeAsString(response.value![1].start!.dateTime!);
+    String endDateTime = DateFormatUtil.formattedDateTimeAsString(response.value![1].end!.dateTime!);
     return "$startDateTime - $endDateTime";
   }
 }

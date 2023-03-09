@@ -4,8 +4,10 @@ class CalendarViewResponse {
   String? odataNextLink;
   bool? isSuccess;
   String? message;
+  String? availabilityView;
 
-  CalendarViewResponse({this.odataContext, this.value, this.odataNextLink, this.isSuccess, this.message});
+
+  CalendarViewResponse({this.odataContext, this.value, this.odataNextLink, this.isSuccess, this.message, this.availabilityView});
 
   CalendarViewResponse.fromJson(Map<String, dynamic> json) {
     odataContext = json['@odata.context'];

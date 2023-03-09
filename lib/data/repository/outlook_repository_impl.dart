@@ -9,6 +9,7 @@ import 'package:ms_outlook_calender/core/utils/constant.dart';
 import 'package:ms_outlook_calender/core/utils/date_format_util.dart';
 import 'package:ms_outlook_calender/core/utils/endpoints.dart';
 import 'package:ms_outlook_calender/core/utils/message.dart';
+import 'package:ms_outlook_calender/data/model/calendar_response.dart';
 import 'package:ms_outlook_calender/data/model/calendar_view_response.dart';
 import 'package:ms_outlook_calender/data/model/schedule_response.dart';
 import 'package:ms_outlook_calender/data/model/token_response.dart';
@@ -59,14 +60,32 @@ class OutlookRepositoryImpl implements OutlookRepository {
       await fetchNewToken();
     }
 
+    // get calendar info for owner address
+    CalendarResponse calendarResponse = await fetchCalendar();
+    if (calendarResponse == null){
+      return CalendarViewResponse(
+        isSuccess: false,
+        message: Message.connectionFailed,
+      );
+    }
+
+    // fetch free/busy schedule
+    ScheduleResponse scheduleResponse = await fetchScheduleByOwner(startDateTime, endDateTime, calendarResponse.owner!.address!);
+    if (scheduleResponse == null){
+      return CalendarViewResponse(
+        isSuccess: false,
+        message: Message.connectionFailed,
+      );
+    }
+
     try {
       dynamic data = await _apiClient.getWithHeader(
-        EndPoints.calendarView,
+        EndPoints.event,
         baseUrl: Constant.baseUrl,
-        params: {
+        /*params: {
           "startDateTime" : startDateTime,
           "endDateTime" : endDateTime,
-        },
+        },*/
       ).onError((error, stackTrace) {
         return CalendarViewResponse(
           isSuccess: false,
@@ -80,12 +99,20 @@ class OutlookRepositoryImpl implements OutlookRepository {
           message: Message.connectionFailed,
         );
       }
+
+      if (data is CalendarViewResponse){
+        return data;
+      }
+
       CalendarViewResponse response = CalendarViewResponse.fromJson(data);
       if (response.value == null) {
         return CalendarViewResponse(
           isSuccess: false,
           message: Message.noRecordFound,
         );
+      }
+      if (scheduleResponse.value != null && scheduleResponse.value!.isNotEmpty){
+        response.availabilityView = scheduleResponse.value![0].availabilityView;
       }
       return response;
     } on Exception catch (_, e){
@@ -108,11 +135,20 @@ class OutlookRepositoryImpl implements OutlookRepository {
         await fetchNewToken();
       }
 
+      CalendarResponse calendarResponse = await fetchCalendar();
+
+      if (calendarResponse == null){
+        return ScheduleResponse(
+          isSuccess: false,
+          message: Message.connectionFailed,
+        );
+      }
+
       dynamic data = await _apiClient.postWithDataAndHeader(
         EndPoints.getSchedule,
         baseUrl: Constant.baseUrl,
         data: {
-          "schedules": ["qm1@sqgc.com"],
+          "schedules": [(calendarResponse.owner!.address!)],
           "startTime": {
             "dateTime": startDateTime,
             "timeZone": "Asia/Dhaka"
@@ -142,6 +178,10 @@ class OutlookRepositoryImpl implements OutlookRepository {
         );
       }
 
+      if (data is ScheduleResponse){
+        return data;
+      }
+
       ScheduleResponse response = ScheduleResponse.fromJson(json.decode(data.toString()));
       if (response.value == null) {
         return ScheduleResponse(
@@ -154,9 +194,82 @@ class OutlookRepositoryImpl implements OutlookRepository {
         return ScheduleResponse(
           isSuccess: false,
           message: Message.noMeetingFound,
+          value: response.value,
+        );
+      }
+      return response;
+    } on Exception catch (_, e){
+      logger.e(e.toString());
+      return ScheduleResponse(
+        message: e.toString(),
+        isSuccess: false,
+      );
+    }
+  }
+
+  Future<ScheduleResponse> fetchScheduleByOwner(String startDateTime, String endDateTime, String ownerAddress) async {
+    try {
+
+      // if token expired
+      DateTime? expirationDate = _sessionManager.tokenExpiration != null
+          ? DateFormatUtil.toDateTime(_sessionManager.tokenExpiration!) : null;
+      if (expirationDate != null && DateTime.now().isAfter(expirationDate)){
+        await fetchNewToken();
+      }
+
+      dynamic data = await _apiClient.postWithDataAndHeader(
+        EndPoints.getSchedule,
+        baseUrl: Constant.baseUrl,
+        data: {
+          "schedules": [ownerAddress],
+          "startTime": {
+            "dateTime": startDateTime,
+            "timeZone": "Asia/Dhaka"
+          },
+          "endTime": {
+            "dateTime": endDateTime,
+            "timeZone": "Asia/Dhaka"
+          },
+          "availabilityViewInterval": 30
+        },
+        header: {
+          "Authorization" : _sessionManager.accessToken!,
+          "Content-Type": 'application/json',
+          "Prefer": 'outlook.timezone="Asia/Dhaka"',
+        },
+      ).onError((error, stackTrace) {
+        return ScheduleResponse(
+          isSuccess: false,
+          message: error is DioError ? error.message : Message.connectionFailed,
+        );
+      });
+
+      if (data == null){
+        return ScheduleResponse(
+          isSuccess: false,
+          message: Message.connectionFailed,
         );
       }
 
+      if (data is ScheduleResponse){
+        return data;
+      }
+
+      ScheduleResponse response = ScheduleResponse.fromJson(json.decode(data.toString()));
+      if (response.value == null) {
+        return ScheduleResponse(
+          isSuccess: false,
+          message: Message.noRecordFound,
+        );
+      }
+
+      if (response.value!.isNotEmpty && (response.value![0].scheduleItems == null || response.value![0].scheduleItems!.isEmpty)){
+        return ScheduleResponse(
+          isSuccess: false,
+          message: Message.noMeetingFound,
+          value: response.value,
+        );
+      }
       return response;
     } on Exception catch (_, e){
       logger.e(e.toString());
@@ -196,6 +309,10 @@ class OutlookRepositoryImpl implements OutlookRepository {
         );
       }
 
+      if (data is TokenResponse){
+        return data;
+      }
+
       TokenResponse response = TokenResponse.fromJson(json.decode(data.toString()));
       _sessionManager.accessToken = response.accessToken!;
       _sessionManager.refreshToken = response.refreshToken!;
@@ -204,6 +321,56 @@ class OutlookRepositoryImpl implements OutlookRepository {
     } on Exception catch (_, e){
       logger.e(e.toString());
       return TokenResponse(
+        message: e.toString(),
+        isSuccess: false,
+      );
+    }
+  }
+
+  @override
+  Future<CalendarResponse> fetchCalendar() async {
+
+    // if token expired
+    DateTime? expirationDate = _sessionManager.tokenExpiration != null
+        ? DateFormatUtil.toDateTime(_sessionManager.tokenExpiration!) : null;
+
+    if (expirationDate != null && DateTime.now().isAfter(expirationDate)){
+      await fetchNewToken();
+    }
+
+    try {
+      dynamic data = await _apiClient.getWithHeader(
+        EndPoints.calendar,
+        baseUrl: Constant.baseUrl,
+      ).onError((error, stackTrace) {
+        return CalendarResponse(
+          isSuccess: false,
+          message: error is DioError ? error.message : Message.connectionFailed,
+        );
+      });
+
+      if (data == null){
+        return CalendarResponse(
+          isSuccess: false,
+          message: Message.connectionFailed,
+        );
+      }
+
+      if (data is CalendarResponse){
+        return data;
+      }
+
+      CalendarResponse response = CalendarResponse.fromJson(data);
+      if (response == null) {
+        return CalendarResponse(
+          isSuccess: false,
+          message: Message.noRecordFound,
+        );
+      }
+      return response;
+    } on Exception catch (_, e){
+      logger.e(e.toString());
+      return CalendarResponse(
         message: e.toString(),
         isSuccess: false,
       );
