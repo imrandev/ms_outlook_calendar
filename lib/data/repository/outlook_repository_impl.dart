@@ -50,7 +50,7 @@ class OutlookRepositoryImpl implements OutlookRepository {
   }
 
   @override
-  Future<CalendarViewResponse> fetchCalendarView(String startDateTime, String endDateTime) async {
+  Future<EventResponse> fetchEvents(String startDateTime, String endDateTime) async {
 
     // if token expired
     DateTime? expirationDate = _sessionManager.tokenExpiration != null
@@ -63,7 +63,7 @@ class OutlookRepositoryImpl implements OutlookRepository {
     // get calendar info for owner address
     CalendarResponse calendarResponse = await fetchCalendar();
     if (calendarResponse == null){
-      return CalendarViewResponse(
+      return EventResponse(
         isSuccess: false,
         message: Message.connectionFailed,
       );
@@ -72,7 +72,7 @@ class OutlookRepositoryImpl implements OutlookRepository {
     // fetch free/busy schedule
     ScheduleResponse scheduleResponse = await fetchScheduleByOwner(startDateTime, endDateTime, calendarResponse.owner!.address!);
     if (scheduleResponse == null){
-      return CalendarViewResponse(
+      return EventResponse(
         isSuccess: false,
         message: Message.connectionFailed,
       );
@@ -87,37 +87,38 @@ class OutlookRepositoryImpl implements OutlookRepository {
           "endDateTime" : endDateTime,
         },*/
       ).onError((error, stackTrace) {
-        return CalendarViewResponse(
+        return EventResponse(
           isSuccess: false,
           message: error is DioError ? error.message : Message.connectionFailed,
         );
       });
 
       if (data == null){
-        return CalendarViewResponse(
+        return EventResponse(
           isSuccess: false,
           message: Message.connectionFailed,
         );
       }
 
-      if (data is CalendarViewResponse){
+      if (data is EventResponse){
         return data;
       }
 
-      CalendarViewResponse response = CalendarViewResponse.fromJson(data);
+      EventResponse response = EventResponse.fromJson(data);
       if (response.value == null) {
-        return CalendarViewResponse(
+        return EventResponse(
           isSuccess: false,
           message: Message.noRecordFound,
         );
       }
       if (scheduleResponse.value != null && scheduleResponse.value!.isNotEmpty){
         response.availabilityView = scheduleResponse.value![0].availabilityView;
+        response.owner = calendarResponse.owner!.name;
       }
       return response;
     } on Exception catch (_, e){
       logger.e(e.toString());
-      return CalendarViewResponse(
+      return EventResponse(
         message: e.toString(),
         isSuccess: false,
       );

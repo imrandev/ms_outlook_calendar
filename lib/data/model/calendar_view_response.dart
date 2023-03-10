@@ -1,15 +1,17 @@
-class CalendarViewResponse {
+class EventResponse {
   String? odataContext;
   List<Value>? value;
   String? odataNextLink;
   bool? isSuccess;
   String? message;
   String? availabilityView;
+  String? owner;
 
 
-  CalendarViewResponse({this.odataContext, this.value, this.odataNextLink, this.isSuccess, this.message, this.availabilityView});
+  EventResponse({this.odataContext, this.value, this.odataNextLink,
+    this.isSuccess, this.message, this.availabilityView, this.owner,});
 
-  CalendarViewResponse.fromJson(Map<String, dynamic> json) {
+  EventResponse.fromJson(Map<String, dynamic> json) {
     odataContext = json['@odata.context'];
     if (json['value'] != null) {
       value = <Value>[];

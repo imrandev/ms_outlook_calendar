@@ -19,9 +19,9 @@ class HomeBloc extends BlocBase {
 
   final SessionManager _sessionManager = getIt<SessionManager>();
 
-  final _calendarController = BehaviorSubject<CalendarViewResponse>();
-  Function(CalendarViewResponse response) get _calendarSink => _calendarController.sink.add;
-  Stream<CalendarViewResponse> get calendarStream => _calendarController.stream;
+  final _calendarController = BehaviorSubject<EventResponse>();
+  Function(EventResponse response) get _calendarSink => _calendarController.sink.add;
+  Stream<EventResponse> get calendarStream => _calendarController.stream;
 
   final _scheduleController = BehaviorSubject<ScheduleResponse>();
   Function(ScheduleResponse response) get _scheduleSink => _scheduleController.sink.add;
@@ -50,7 +50,7 @@ class HomeBloc extends BlocBase {
     String startDateTime = DateFormatUtil.getCurrentDateTime(dateTime);
     String endDateTime = DateFormatUtil.getAdding30MinToCurrentDateTime(dateTime);
     //ScheduleResponse response = await _scheduleUseCase.invoke(startDateTime, endDateTime);
-    CalendarViewResponse response = await _calendarViewUseCase.invoke(startDateTime, endDateTime);
+    EventResponse response = await _calendarViewUseCase.invoke(startDateTime, endDateTime);
     _calendarSink(response);
   }
 }

@@ -7,7 +7,7 @@ abstract class OutlookRepository {
 
   Future<bool> authenticated();
 
-  Future<CalendarViewResponse> fetchCalendarView(String startDateTime, String endDateTime);
+  Future<EventResponse> fetchEvents(String startDateTime, String endDateTime);
 
   Future<ScheduleResponse> fetchSchedule(String startDateTime, String endDateTime);
 
