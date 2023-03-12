@@ -38,6 +38,7 @@ class OutlookRepositoryImpl implements OutlookRepository {
       clientId: Constant.clientId,
       scopes: ['openid profile offline_access calendars.read'],
     );
+
     print('accessToken: ${token.accessToken}');
     bool hasToken = token.accessToken!= null && token.accessToken!.isNotEmpty;
     if (hasToken){

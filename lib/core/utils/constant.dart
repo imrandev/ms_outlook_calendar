@@ -13,4 +13,7 @@ class Constant {
   // meeting room status
   static const occupied = "2";
   static const available = "0";
+  static const tentative = "1";
+  static const outOfOffice = "3";
+  static const workingElseWhere = "4";
 }

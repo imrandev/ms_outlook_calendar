@@ -43,16 +43,46 @@ class HomePage extends StatelessWidget {
   }
 
   Color _getMainBackground(EventResponse? response){
-    if (response != null && response.availabilityView != null
-        && response.availabilityView! == "2"){
+
+    if (response == null || response.availabilityView == null){
+      return const Color(0xff7AB19F);
+    }
+    if (response.availabilityView! == Constant.occupied){
+      return const Color(0xffC24447);
+    }
+    if (response.availabilityView! == Constant.tentative){
+      return const Color(0xffC24447);
+    }
+    if (response.availabilityView! == Constant.available){
+      return const Color(0xff7AB19F);
+    }
+    if (response.availabilityView! == Constant.outOfOffice){
+      return const Color(0xff7AB19F);
+    }
+    if (response.availabilityView! == Constant.workingElseWhere){
       return const Color(0xffC24447);
     }
     return const Color(0xff7AB19F);
   }
 
   Color _getWidgetBackground(EventResponse? response){
-    if (response != null && response.availabilityView != null
-        && response.availabilityView! == Constant.occupied){
+
+    if (response == null || response.availabilityView == null){
+      return const Color(0xff71A491);
+    }
+    if (response.availabilityView! == Constant.occupied){
+      return const Color(0xffCB494B);
+    }
+    if (response.availabilityView! == Constant.tentative){
+      return const Color(0xffCB494B);
+    }
+    if (response.availabilityView! == Constant.available){
+      return const Color(0xff71A491);
+    }
+    if (response.availabilityView! == Constant.outOfOffice){
+      return const Color(0xff71A491);
+    }
+    if (response.availabilityView! == Constant.workingElseWhere){
       return const Color(0xffCB494B);
     }
     return const Color(0xff71A491);
@@ -84,14 +114,25 @@ class HomePage extends StatelessWidget {
   }
 
   String _getAvailabilityStatus(EventResponse? response){
-    if (response == null){
+    if (response == null || response.availabilityView == null){
       return "";
     }
-    if (response.availabilityView != null
-        && response.availabilityView! == Constant.occupied){
+    if (response.availabilityView! == Constant.occupied){
       return "Occupied";
     }
-    return "Available";
+    if (response.availabilityView! == Constant.tentative){
+      return "Occupied";
+    }
+    if (response.availabilityView! == Constant.available){
+      return "Available";
+    }
+    if (response.availabilityView! == Constant.outOfOffice){
+      return "Available";
+    }
+    if (response.availabilityView! == Constant.workingElseWhere){
+      return "Occupied";
+    }
+    return "";
   }
 
   Widget _getBottomView(BuildContext context, EventResponse? response){
